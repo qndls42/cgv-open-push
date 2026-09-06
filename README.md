@@ -73,6 +73,98 @@ https://snapp.wzero.dev/cgv
 <br>
 <br>
 
+## 🖥️ 내 PC에서 직접 돌리기 (v2 · 원하는 극장 지정)
+
+`v2/` 폴더에는 **리뉴얼된 CGV(https://cgv.co.kr) API** 를 사용하는 로컬 실행용 버전이 들어 있습니다.
+Discord 봇을 만들 필요 없이 **웹훅 URL 하나**만 있으면 되고, 원하는 극장·특별관·영화를 설정 파일로 지정할 수 있습니다.
+
+> `v1/` 은 리뉴얼 이전 API(`ticket.cgv.co.kr`)를 쓰는 예전 버전이라 현재는 동작하지 않습니다.
+
+### 1. 준비물
+
+- Python 3.9 이상 (https://www.python.org/downloads/ · 설치 시 *Add python to PATH* 체크)
+- 알림을 받을 Discord 서버의 **웹훅 URL**
+  (채널 설정 → 연동 → 웹후크 → 새 웹후크 → 웹후크 URL 복사)
+  - 텔레그램을 쓰고 싶다면 봇 토큰 + chat_id 로도 받을 수 있습니다.
+
+### 2. 설치
+
+```bash
+git clone https://github.com/qndls42/cgv-open-push.git
+cd cgv-open-push/v2
+python -m venv .venv
+# Windows
+.venv\Scripts\pip install -r requirements.txt
+# macOS / Linux
+.venv/bin/pip install -r requirements.txt
+```
+
+(Windows 는 `run.bat`, macOS/Linux 는 `run.sh` 를 실행하면 위 과정을 자동으로 해 줍니다.)
+
+### 3. 감시할 극장 코드 찾기
+
+```bash
+python main.py theaters 용산      # 이름으로 검색
+python main.py theaters           # 전체 목록
+```
+
+자주 쓰는 코드: `0013` 용산아이파크몰 · `0056` 강남 · `0074` 왕십리 · `0059` 영등포타임스퀘어 · `0112` 여의도
+
+```bash
+python main.py probe 0013         # 해당 극장의 상영 회차와 원본 필드 확인 (필터 키워드 정할 때 참고)
+```
+
+### 4. 설정 (`config.json`)
+
+`config.example.json` 을 `config.json` 으로 복사한 뒤 수정합니다. (처음 실행하면 자동으로 복사됩니다.)
+
+```jsonc
+{
+  "targets": [
+    { "name": "용산아이파크몰 IMAX", "theater_code": "0013", "screen_keywords": ["IMAX"] },
+    { "name": "왕십리 전체",        "theater_code": "0074", "screen_keywords": [] },
+    { "name": "강남 아바타",        "theater_code": "0056", "movie_keywords": ["아바타"] }
+  ],
+  "check_interval_sec": 300,        // 조회 주기 (초). 너무 짧게 잡으면 차단될 수 있음
+  "lookahead_days": 14,             // 오늘부터 며칠치 시간표를 볼지
+  "notify_on_first_run": false,     // true 면 첫 실행 때 현재 예매 가능 회차도 알림
+  "discord_webhook_url": "https://discord.com/api/webhooks/....",
+  "status_page": { "enabled": true, "host": "127.0.0.1", "port": 5000 }
+}
+```
+
+| 항목 | 설명 |
+|---|---|
+| `theater_code` | CGV 극장 코드 (`theaters` 명령으로 확인) |
+| `screen_keywords` | 상영관/유형 키워드. 하나라도 포함된 회차만 감시. 비우면 모든 상영관 (`IMAX`, `4DX`, `SCREENX`, `골드클래스` …) |
+| `movie_keywords` | 영화 제목 키워드. 비우면 모든 영화 |
+| `exclude_keywords` | 포함되면 무시할 키워드 |
+
+웹훅 URL 은 설정 파일 대신 환경 변수 `DISCORD_WEBHOOK_URL` 로 줄 수도 있습니다.
+
+### 5. 실행
+
+```bash
+python main.py test-notify        # 알림 채널 테스트
+python main.py run                # 감시 시작 (Ctrl+C 로 종료)
+```
+
+- 실행 중 http://127.0.0.1:5000 에서 상태·최근 알림·로그를 볼 수 있습니다.
+- 처음 실행하면 현재 시간표를 기준으로 저장만 하고, 이후 **새로 생긴 회차(= 예매 오픈)** 만 알립니다.
+- 상태는 `state.json` 에 저장되므로 프로그램을 껐다 켜도 이어서 감시합니다.
+- 한 번만 조회하고 끝내려면 `python main.py check` (작업 스케줄러 / cron 용).
+
+### 6. 동작 원리와 주의사항
+
+- CGV 웹 예매 페이지가 호출하는 `https://api.cgv.co.kr/cnm/atkt/searchMovScnInfo` 를 극장·날짜별로 조회해 직전 결과와 비교합니다.
+- 요청에는 CGV 프론트엔드와 동일한 `X-TIMESTAMP` / `X-SIGNATURE`(HMAC-SHA256) 헤더를 붙입니다.
+- **클라우드/서버 IP 는 Cloudflare 에 의해 403 으로 차단되는 경우가 많습니다.** 가정용 PC 회선에서 실행하세요. 차단이 감지되면 10분 이상 쉬었다가 재시도합니다.
+- 조회 주기를 너무 짧게 잡거나 극장을 너무 많이 넣으면 차단될 수 있습니다. (기본: 5분마다, 극장당 15회 요청)
+- CGV 가 API 를 바꾸면 동작하지 않을 수 있습니다. `python main.py probe <극장코드>` 로 응답을 확인해 보세요.
+
+<br>
+<br>
+
 ## 사용 전 반드시 읽어주세요.
 
 -  CGV 예매 오픈 알리미는 CGV의 특정 영화관, 특정 영화의 상영 일정을 주기적으로 갱신하여 변동사항을 확인하고, 변동사항이 발생된다면 Discord를 통해 알림을 전송합니다.
@@ -87,6 +179,8 @@ https://snapp.wzero.dev/cgv
 <br>
 
 ## Stack
+
+> v2 (로컬 버전) 은 Python + requests 만 사용합니다.
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Docker](https://img.shields.io/badge/docker-0db7ed.svg?style=for-the-badge&logo=docker&logoColor=white) ![Discord](https://img.shields.io/badge/Discord-7289DA?style=for-the-badge&logo=discord&logoColor=white)
 
