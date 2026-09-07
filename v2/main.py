@@ -85,7 +85,7 @@ def load_config() -> dict:
     ):
         if os.environ.get(env):
             config[key] = os.environ[env]
-    if not config.get("targets"):
+    if not [t for t in config.get("targets", []) if t.get("enabled", True)]:
         sys.exit("config.json 의 targets 가 비어 있습니다. 감시할 극장을 1개 이상 넣어주세요.")
     ensure_push_channel(config)
     return config

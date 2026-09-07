@@ -3,11 +3,22 @@
 
   "targets": [
     {
-      "name": "영등포타임스퀘어",
+      "name": "영등포 오디세이 9/12(토)",
       "theater_code": "0059",
+      "movie_keywords": ["오디세이"],
+      "dates": ["20260912"],
       "screen_keywords": [],
+      "exclude_keywords": [],
+      "enabled": true
+    },
+    {
+      "name": "영등포타임스퀘어 전체",
+      "theater_code": "0059",
       "movie_keywords": [],
-      "exclude_keywords": []
+      "dates": [],
+      "screen_keywords": [],
+      "exclude_keywords": [],
+      "enabled": false
     }
   ],
 
@@ -17,7 +28,9 @@
     "screen_keywords  : 상영관/유형 키워드. 하나라도 포함된 회차만 감시. 비우면 모든 상영관 (예: IMAX, 4DX, SCREENX, 골드클래스)",
     "movie_keywords   : 영화 제목 키워드. 비우면 모든 영화 (예: [\"아바타\"])",
     "exclude_keywords : 이 키워드가 포함된 회차는 무시",
-    "기본값은 영등포타임스퀘어 모든 상영관입니다. IMAX 만 보려면 screen_keywords 에 [\"IMAX\"] 를 넣으세요."
+    "dates            : 특정 날짜만 감시 (YYYYMMDD). 비우면 오늘부터 lookahead_days 일까지 전부",
+    "enabled          : false 로 두면 그 target 은 무시 (설정을 지우지 않고 잠깐 끌 때)",
+    "기본값은 영등포타임스퀘어에서 '오디세이' 9월 12일 회차가 새로 열리는지 감시합니다."
   ],
 
   "check_interval_sec": 300,

@@ -124,15 +124,16 @@ python main.py probe 0013         # 해당 극장의 상영 회차와 원본 필
 
 ### 4. 설정 (`config.json`)
 
-처음 실행하면 `config.example.json` 이 `config.json` 으로 복사됩니다. 기본값은 **영등포타임스퀘어(0059) 모든 상영관** 입니다.
+처음 실행하면 `config.example.json` 이 `config.json` 으로 복사됩니다. 기본값은 **영등포타임스퀘어(0059)에서 '오디세이' 9월 12일 회차가 새로 열리는지** 감시하는 설정입니다.
 다른 극장이나 영화를 보고 싶으면 `targets` 를 고치세요.
 
 ```jsonc
 {
   "targets": [
-    { "name": "영등포타임스퀘어",        "theater_code": "0059", "screen_keywords": [] },        // 모든 상영관
-    { "name": "영등포타임스퀘어 IMAX",    "theater_code": "0059", "screen_keywords": ["IMAX"] }, // 특정 상영관만
-    { "name": "강남 아바타",             "theater_code": "0056", "movie_keywords": ["아바타"] }  // 특정 영화
+    { "name": "영등포 오디세이 9/12",     "theater_code": "0059", "movie_keywords": ["오디세이"], "dates": ["20260912"] }, // 특정 영화 + 특정 날짜
+    { "name": "영등포타임스퀘어 전체",     "theater_code": "0059", "screen_keywords": [] },                                 // 극장 전체
+    { "name": "영등포타임스퀘어 IMAX",    "theater_code": "0059", "screen_keywords": ["IMAX"] },                          // 특정 상영관만
+    { "name": "강남 아바타",             "theater_code": "0056", "movie_keywords": ["아바타"], "enabled": false }        // 잠깐 끄기
   ],
   "check_interval_sec": 300,        // 조회 주기 (초). 너무 짧게 잡으면 차단될 수 있음
   "lookahead_days": 14,             // 오늘부터 며칠치 시간표를 볼지
@@ -149,6 +150,8 @@ python main.py probe 0013         # 해당 극장의 상영 회차와 원본 필
 | `screen_keywords` | 상영관/유형 키워드. 하나라도 포함된 회차만 감시. 비우면 모든 상영관 (`IMAX`, `4DX`, `SCREENX`, `골드클래스` …) |
 | `movie_keywords` | 영화 제목 키워드. 비우면 모든 영화 |
 | `exclude_keywords` | 포함되면 무시할 키워드 |
+| `dates` | 특정 날짜만 감시 (`YYYYMMDD`). 비우면 오늘부터 `lookahead_days` 일까지 전부 |
+| `enabled` | `false` 면 그 대상은 무시 (기본 `true`) |
 | `ntfy_topic` | 폰 알림용 ntfy 토픽. 비워 두면 자동 생성. 아는 사람은 누구나 구독할 수 있으니 공개하지 마세요 |
 
 **Discord 웹훅 URL 은 `config.json` 대신 같은 폴더에 `.env` 파일을 만들어 넣는 것을 권장합니다.** (`.env` 는 git 에 올라가지 않습니다)

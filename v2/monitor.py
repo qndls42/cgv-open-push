@@ -105,10 +105,15 @@ class Target:
         self.screen_keywords = [k.lower() for k in cfg.get("screen_keywords", []) if k]
         self.movie_keywords = [k.lower() for k in cfg.get("movie_keywords", []) if k]
         self.exclude_keywords = [k.lower() for k in cfg.get("exclude_keywords", []) if k]
+        # 특정 날짜만 감시 (예: ["20260912"] 또는 ["2026-09-12"]). 비우면 모든 날짜
+        self.dates = {str(d).replace("-", "").replace(".", "").strip() for d in cfg.get("dates", []) if d}
+        self.enabled = bool(cfg.get("enabled", True))
         # 상태 저장용 고유 키 (같은 극장에 여러 대상을 둘 수 있으므로 이름까지 포함)
         self.id = f"{self.theater_code}|{self.name}"
 
     def accepts(self, showing: Showing) -> bool:
+        if self.dates and showing.date not in self.dates:
+            return False
         text = showing.search_text
         if self.exclude_keywords and any(k in text for k in self.exclude_keywords):
             return False
@@ -122,6 +127,8 @@ class Target:
 
     def describe(self) -> str:
         bits = [f"{self.name}({self.theater_code})"]
+        if self.dates:
+            bits.append("날짜=" + "/".join(fmt_date(d) for d in sorted(self.dates)))
         if self.screen_keywords:
             bits.append("상영관=" + "/".join(self.screen_keywords))
         if self.movie_keywords:
@@ -135,7 +142,7 @@ class Monitor:
     def __init__(self, config: Dict[str, Any], notifier, state_path: str):
         self.client = CgvClient(timeout=float(config.get("request_timeout_sec", 15)))
         self.notifier = notifier
-        self.targets = [Target(t) for t in config.get("targets", [])]
+        self.targets = [t for t in (Target(c) for c in config.get("targets", [])) if t.enabled]
         self.interval = int(config.get("check_interval_sec", 300))
         self.lookahead_days = int(config.get("lookahead_days", 14))
         self.request_delay = float(config.get("request_delay_sec", 1.0))
@@ -175,7 +182,16 @@ class Monitor:
     # ---------------------------------------------------------------- fetching
     def dates(self) -> List[str]:
         today = now_kst()
-        return [yyyymmdd(today + timedelta(days=i)) for i in range(self.lookahead_days + 1)]
+        days = self.lookahead_days
+        # 감시 대상에 특정 날짜가 지정되어 있으면 그 날짜까지는 반드시 조회 범위에 포함
+        for target in self.targets:
+            for d in target.dates:
+                try:
+                    delta = (datetime.strptime(d, "%Y%m%d").date() - today.date()).days
+                except ValueError:
+                    continue
+                days = max(days, min(delta, 60))
+        return [yyyymmdd(today + timedelta(days=i)) for i in range(days + 1)]
 
     def fetch_theater(self, theater_code: str) -> List[Showing]:
         """극장 하나의 lookahead 기간 전체 회차를 가져온다 (필터 적용 전)."""
