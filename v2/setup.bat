@@ -41,6 +41,12 @@ if defined WEBHOOK (
 
 echo [4/4] 알림 테스트
 .venv\Scripts\python main.py test-notify
+if errorlevel 1 (
+  echo.
+  echo [오류] 알림 테스트에 실패했습니다. 위 오류 메시지를 확인하세요.
+  pause
+  exit /b 1
+)
 echo.
 echo ------------------------------------------------------------
 echo  위 테스트 메시지가 Discord(또는 ntfy 앱)에 도착했는지 확인하세요.

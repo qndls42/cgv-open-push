@@ -12,14 +12,15 @@ import logging
 import os
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
-from zoneinfo import ZoneInfo
 
 from cgv_api import CgvBlockedError, CgvClient
 
 log = logging.getLogger("cgv-open-push")
-KST = ZoneInfo("Asia/Seoul")
+# 한국은 서머타임이 없으므로 고정 오프셋으로 충분하다.
+# (Windows Python 에는 zoneinfo 시간대 DB 가 없어 ZoneInfo("Asia/Seoul") 이 실패한다)
+KST = timezone(timedelta(hours=9), "KST")
 
 # 상영관 이름/유형이 들어 있을 가능성이 높은 raw 필드 후보 (앞에서부터 우선)
 SCREEN_KEY_CANDIDATES = (
