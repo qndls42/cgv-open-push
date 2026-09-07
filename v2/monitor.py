@@ -10,6 +10,7 @@
 import json
 import logging
 import os
+import random
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -37,6 +38,37 @@ def now_kst() -> datetime:
 
 def yyyymmdd(d: datetime) -> str:
     return d.strftime("%Y%m%d")
+
+
+# 조회 주기 하한. 이보다 짧게 두면 CGV 에 차단당하기 쉽다.
+MIN_INTERVAL_SEC = 10.0
+
+
+def parse_interval(value: Any) -> Tuple[float, float]:
+    """조회 주기 설정을 (최소, 최대) 초로 해석한다.
+
+    - 300            -> (300, 300)   고정 주기
+    - [10, 30]       -> (10, 30)     매 회차 이 범위의 난수
+    - {"min":10,"max":30} -> (10, 30)
+    """
+    if isinstance(value, dict):
+        low, high = value.get("min", 300), value.get("max", value.get("min", 300))
+    elif isinstance(value, (list, tuple)) and value:
+        low = value[0]
+        high = value[1] if len(value) > 1 else value[0]
+    else:
+        low = high = value
+    try:
+        low, high = float(low), float(high)
+    except (TypeError, ValueError):
+        low = high = 300.0
+    if high < low:
+        low, high = high, low
+    if low < MIN_INTERVAL_SEC:
+        log.warning("조회 주기 %.0f초는 너무 짧아 %.0f초로 올립니다.", low, MIN_INTERVAL_SEC)
+        low = MIN_INTERVAL_SEC
+        high = max(high, MIN_INTERVAL_SEC)
+    return low, high
 
 
 def first_value(item: Dict[str, Any], keys: Tuple[str, ...]) -> str:
@@ -143,7 +175,7 @@ class Monitor:
         self.client = CgvClient(timeout=float(config.get("request_timeout_sec", 15)))
         self.notifier = notifier
         self.targets = [t for t in (Target(c) for c in config.get("targets", [])) if t.enabled]
-        self.interval = int(config.get("check_interval_sec", 300))
+        self.interval_min, self.interval_max = parse_interval(config.get("check_interval_sec", 300))
         self.lookahead_days = int(config.get("lookahead_days", 14))
         self.request_delay = float(config.get("request_delay_sec", 1.0))
         self.notify_on_first_run = bool(config.get("notify_on_first_run", False))
@@ -163,6 +195,18 @@ class Monitor:
             "recent_notifications": [],
         }
 
+    @property
+    def interval_text(self) -> str:
+        if self.interval_min == self.interval_max:
+            return f"{self.interval_min:.0f}"
+        return f"{self.interval_min:.0f}~{self.interval_max:.0f}"
+
+    def next_interval(self) -> float:
+        """다음 조회까지 기다릴 시간. 범위가 주어졌으면 매번 다른 난수를 쓴다."""
+        if self.interval_min == self.interval_max:
+            return self.interval_min
+        return random.uniform(self.interval_min, self.interval_max)
+
     # ------------------------------------------------------------------ state
     def _load_state(self) -> Dict[str, Any]:
         if os.path.exists(self.state_path):
@@ -180,11 +224,26 @@ class Monitor:
         os.replace(tmp, self.state_path)
 
     # ---------------------------------------------------------------- fetching
-    def dates(self) -> List[str]:
+    def dates(self, targets: Optional[List[Target]] = None) -> List[str]:
+        """조회할 날짜 목록.
+
+        대상이 모두 특정 날짜(dates)를 지정했다면 그 날짜만 조회한다.
+        날짜를 지정하지 않은 대상이 하나라도 있으면 오늘부터 lookahead_days 일까지 전부 조회한다.
+        """
+        targets = self.targets if targets is None else targets
         today = now_kst()
+        today_str = yyyymmdd(today)
+
+        if targets and all(t.dates for t in targets):
+            wanted = sorted({d for t in targets for d in t.dates if d >= today_str})
+            if wanted:
+                return wanted
+            # 지정한 날짜가 모두 지났으면 오늘만 확인
+            return [today_str]
+
         days = self.lookahead_days
-        # 감시 대상에 특정 날짜가 지정되어 있으면 그 날짜까지는 반드시 조회 범위에 포함
-        for target in self.targets:
+        # 날짜를 지정한 대상이 섞여 있으면 그 날짜까지는 조회 범위에 포함
+        for target in targets:
             for d in target.dates:
                 try:
                     delta = (datetime.strptime(d, "%Y%m%d").date() - today.date()).days
@@ -193,13 +252,15 @@ class Monitor:
                 days = max(days, min(delta, 60))
         return [yyyymmdd(today + timedelta(days=i)) for i in range(days + 1)]
 
-    def fetch_theater(self, theater_code: str) -> List[Showing]:
-        """극장 하나의 lookahead 기간 전체 회차를 가져온다 (필터 적용 전)."""
+    def fetch_theater(self, theater_code: str, targets: Optional[List[Target]] = None) -> List[Showing]:
+        """극장 하나의 회차를 가져온다 (필터 적용 전)."""
         result: List[Showing] = []
-        for date in self.dates():
+        dates = self.dates(targets)
+        for index, date in enumerate(dates):
             for raw in self.client.schedule(theater_code, date):
                 result.append(Showing(raw))
-            time.sleep(self.request_delay)
+            if index < len(dates) - 1:
+                time.sleep(self.request_delay)
         return result
 
     # -------------------------------------------------------------------- diff
@@ -211,7 +272,7 @@ class Monitor:
 
         for theater_code, targets in by_theater.items():
             try:
-                showings = self.fetch_theater(theater_code)
+                showings = self.fetch_theater(theater_code, targets)
             except CgvBlockedError as e:
                 self._record_error(str(e), blocked=True)
                 log.error("%s: %s", theater_code, e)
@@ -280,13 +341,13 @@ class Monitor:
     # -------------------------------------------------------------------- loop
     def run_forever(self) -> None:
         log.info("감시 시작: %s", "; ".join(t.describe() for t in self.targets))
-        log.info("조회 주기 %d초, 앞으로 %d일치 조회, 알림 채널 %s",
-                 self.interval, self.lookahead_days, self.notifier.targets)
+        log.info("조회 주기 %s초, 조회 날짜 %s, 알림 채널 %s",
+                 self.interval_text, ", ".join(self.dates()), self.notifier.targets)
         while True:
             started = time.monotonic()
             self.check_once()
             elapsed = time.monotonic() - started
-            wait = max(10.0, self.interval - elapsed)
+            wait = max(MIN_INTERVAL_SEC, self.next_interval() - elapsed)
             if self.status.get("blocked"):
                 wait = max(wait, 600.0)  # 차단당했으면 10분 이상 쉬었다가 재시도
                 log.warning("차단 상태입니다. %d초 후 재시도", int(wait))

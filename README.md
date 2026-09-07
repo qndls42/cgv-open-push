@@ -135,7 +135,7 @@ python main.py probe 0013         # 해당 극장의 상영 회차와 원본 필
     { "name": "영등포타임스퀘어 IMAX",    "theater_code": "0059", "screen_keywords": ["IMAX"] },                          // 특정 상영관만
     { "name": "강남 아바타",             "theater_code": "0056", "movie_keywords": ["아바타"], "enabled": false }        // 잠깐 끄기
   ],
-  "check_interval_sec": 300,        // 조회 주기 (초). 너무 짧게 잡으면 차단될 수 있음
+  "check_interval_sec": [10, 30],   // 조회 주기. [최소,최대] 면 매번 그 범위의 난수, 숫자 하나면 고정 (최소 10초)
   "lookahead_days": 14,             // 오늘부터 며칠치 시간표를 볼지
   "notify_on_first_run": false,     // true 면 첫 실행 때 현재 예매 가능 회차도 알림
   "ntfy_topic": "",                 // 비워 두면 첫 실행 때 자동 생성
@@ -152,6 +152,10 @@ python main.py probe 0013         # 해당 극장의 상영 회차와 원본 필
 | `exclude_keywords` | 포함되면 무시할 키워드 |
 | `dates` | 특정 날짜만 감시 (`YYYYMMDD`). 비우면 오늘부터 `lookahead_days` 일까지 전부 |
 | `enabled` | `false` 면 그 대상은 무시 (기본 `true`) |
+
+**조회 주기와 요청 수**: 모든 감시 대상에 `dates` 가 지정되어 있으면 그 날짜만 조회하므로 한 번에 요청 1건이면 충분합니다.
+`dates` 를 비운 대상이 하나라도 있으면 오늘부터 `lookahead_days` 일치를 전부 조회하므로 요청이 15건 가까이 됩니다.
+그때는 `check_interval_sec` 을 짧게 두지 마세요. 요청이 잦으면 CGV 가 차단할 수 있습니다.
 | `ntfy_topic` | 폰 알림용 ntfy 토픽. 비워 두면 자동 생성. 아는 사람은 누구나 구독할 수 있으니 공개하지 마세요 |
 
 **Discord 웹훅 URL 은 `config.json` 대신 같은 폴더에 `.env` 파일을 만들어 넣는 것을 권장합니다.** (`.env` 는 git 에 올라가지 않습니다)

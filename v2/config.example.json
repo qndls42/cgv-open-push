@@ -33,11 +33,12 @@
     "기본값은 영등포타임스퀘어에서 '오디세이' 9월 12일 회차가 새로 열리는지 감시합니다."
   ],
 
-  "check_interval_sec": 300,
+  "check_interval_sec": [10, 30],
+  "_check_interval_sec_설명": "숫자 하나면 고정 주기(초), [최소, 최대] 로 주면 매 회차 그 범위의 난수. 최소 10초.",
   "lookahead_days": 14,
   "request_delay_sec": 1.0,
   "request_timeout_sec": 15,
-  "notify_on_first_run": false,
+  "notify_on_first_run": true,
   "notify_removed": false,
 
   "_알림_설명": [

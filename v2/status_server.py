@@ -28,7 +28,7 @@ def tail(path: str, n: int = 60) -> str:
         return f"(로그 읽기 실패: {e})"
 
 
-def render(status: Dict[str, Any], log_path: str, interval: int) -> str:
+def render(status: Dict[str, Any], log_path: str, interval: str) -> str:
     blocked = status.get("blocked")
     err = status.get("last_error")
     color = "#e06666" if (blocked or not status.get("last_check_at")) else "#1D976C"
@@ -72,7 +72,7 @@ def start_status_server(monitor, host: str, port: int, log_path: str) -> threadi
                 body = json.dumps(monitor.status, ensure_ascii=False).encode("utf-8")
                 ctype = "application/json; charset=utf-8"
             else:
-                body = render(monitor.status, log_path, monitor.interval).encode("utf-8")
+                body = render(monitor.status, log_path, monitor.interval_text).encode("utf-8")
                 ctype = "text/html; charset=utf-8"
             self.send_response(200)
             self.send_header("Content-Type", ctype)
