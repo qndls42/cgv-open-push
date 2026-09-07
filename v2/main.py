@@ -135,7 +135,8 @@ def cmd_run(once: bool = False) -> None:
     if once:
         monitor.check_once()
         return
-    print(phone_guide(notifier), flush=True)
+    if notifier.ntfy_topic:
+        print(phone_guide(notifier), flush=True)
     if config.get("status_page", {}).get("enabled", True):
         page = config.get("status_page", {})
         start_status_server(monitor, page.get("host", "127.0.0.1"), int(page.get("port", 5000)), LOG_PATH)

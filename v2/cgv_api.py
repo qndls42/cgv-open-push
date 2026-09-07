@@ -16,12 +16,13 @@
 import base64
 import hashlib
 import hmac
+import os
 import time
 from typing import Any, Dict, List, Optional
 
 import requests
 
-BASE_URL = "https://api.cgv.co.kr"
+BASE_URL = os.environ.get("CGV_API_BASE_URL", "https://api.cgv.co.kr")  # 테스트용 오버라이드 허용
 COMPANY_CODE = "A420"
 SIGNING_SECRET = "ydqXY0ocnFLmJGHr_zNzFcpjwAsXq_8JcBNURAkRscg"
 

@@ -87,10 +87,20 @@ Discord 봇을 만들 필요 없이 **웹훅 URL 하나**만 있으면 되고, �
   - 첫 실행 때 알리미가 임의의 토픽 이름을 자동으로 만들어 주므로, 그 토픽을 앱에서 구독하기만 하면 됩니다.
   - Discord 로 받고 싶다면 채널 설정 → 연동 → 웹후크 에서 만든 **웹훅 URL** 을 설정에 넣으세요. (텔레그램도 지원)
 
-### 2. 설치
+### 2. 설치 + 실행 (가장 쉬운 방법)
+
+1. 코드를 받습니다. git 이 없으면 GitHub 저장소 페이지의 **Code → Download ZIP** 으로 받아 압축을 풉니다.
+   ```bash
+   git clone https://github.com/qndls42/cgv-open-push.git
+   ```
+2. `v2` 폴더의 **`setup.bat`** (Windows) 또는 **`setup.sh`** (macOS/Linux) 를 실행합니다.
+   - 가상환경 생성 → 패키지 설치 → Discord 웹훅 URL 입력(`.env` 에 저장) → 알림 테스트 → 감시 시작까지 자동으로 진행됩니다.
+   - 웹훅 URL 을 비워 두고 Enter 를 누르면 ntfy 폰 알림이 자동으로 설정됩니다.
+3. 두 번째부터는 `run.bat` / `run.sh` 만 실행하면 됩니다.
+
+수동으로 하려면:
 
 ```bash
-git clone https://github.com/qndls42/cgv-open-push.git
 cd cgv-open-push/v2
 python -m venv .venv
 # Windows
@@ -98,8 +108,6 @@ python -m venv .venv
 # macOS / Linux
 .venv/bin/pip install -r requirements.txt
 ```
-
-(Windows 는 `run.bat`, macOS/Linux 는 `run.sh` 를 실행하면 위 과정을 자동으로 해 줍니다.)
 
 ### 3. 감시할 극장 코드 찾기
 
