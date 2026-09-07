@@ -10,7 +10,8 @@ CGV 예매 오픈 알리미 v2 (로컬 PC 실행용)
   python main.py check                    # 한 번만 조회하고 종료 (cron/작업 스케줄러용)
 
 설정은 같은 폴더의 config.json 에서 읽는다. (없으면 config.example.json 을 복사해 만들 것)
-민감한 값은 환경 변수로도 줄 수 있다: DISCORD_WEBHOOK_URL, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NTFY_TOPIC
+민감한 값은 환경 변수 또는 같은 폴더의 .env 파일(KEY=VALUE 한 줄씩)로 줄 수 있다:
+  DISCORD_WEBHOOK_URL, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, NTFY_TOPIC
 
 알림 채널을 아무것도 설정하지 않으면 첫 실행 때 ntfy 토픽(임의의 긴 이름)을 자동으로 만들어
 config.json 에 저장한다. 폰에 ntfy 앱을 설치하고 그 토픽을 구독하면 바로 푸시 알림을 받을 수 있다.
@@ -33,6 +34,7 @@ from status_server import start_status_server
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(HERE, "config.json")
 EXAMPLE_PATH = os.path.join(HERE, "config.example.json")
+ENV_PATH = os.path.join(HERE, ".env")
 STATE_PATH = os.path.join(HERE, "state.json")
 LOG_PATH = os.path.join(HERE, "cgv-open-push.log")
 
@@ -51,10 +53,26 @@ def setup_logging() -> None:
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
+def load_dotenv(path: str) -> None:
+    """아주 단순한 .env 로더: KEY=VALUE, # 주석, 따옴표 허용. 이미 있는 환경 변수는 덮어쓰지 않는다."""
+    if not os.path.exists(path):
+        return
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key, value = key.strip(), value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
 def load_config() -> dict:
+    load_dotenv(ENV_PATH)
     if not os.path.exists(CONFIG_PATH):
         shutil.copyfile(EXAMPLE_PATH, CONFIG_PATH)
-        print(f"config.json 이 없어 기본 설정(영등포타임스퀘어 IMAX/SCREENX)을 복사했습니다: {CONFIG_PATH}")
+        print(f"config.json 이 없어 기본 설정(영등포타임스퀘어 모든 상영관)을 복사했습니다: {CONFIG_PATH}")
         print("다른 극장/영화를 감시하려면 이 파일의 targets 를 수정하세요.")
     with open(CONFIG_PATH, encoding="utf-8") as f:
         config = json.load(f)

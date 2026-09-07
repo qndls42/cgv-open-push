@@ -5,3 +5,4 @@ state.json.tmp
 *.log.*
 .venv/
 __pycache__/
+.env
