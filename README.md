@@ -83,9 +83,9 @@ Discord 봇을 만들 필요 없이 **웹훅 URL 하나**만 있으면 되고, �
 ### 1. 준비물
 
 - Python 3.9 이상 (https://www.python.org/downloads/ · 설치 시 *Add python to PATH* 체크)
-- 알림을 받을 Discord 서버의 **웹훅 URL**
-  (채널 설정 → 연동 → 웹후크 → 새 웹후크 → 웹후크 URL 복사)
-  - 텔레그램을 쓰고 싶다면 봇 토큰 + chat_id 로도 받을 수 있습니다.
+- 폰에 **ntfy 앱** (Android / iPhone, 무료) — 별도 계정이나 서버 없이 푸시 알림을 받을 수 있습니다.
+  - 첫 실행 때 알리미가 임의의 토픽 이름을 자동으로 만들어 주므로, 그 토픽을 앱에서 구독하기만 하면 됩니다.
+  - Discord 로 받고 싶다면 채널 설정 → 연동 → 웹후크 에서 만든 **웹훅 URL** 을 설정에 넣으세요. (텔레그램도 지원)
 
 ### 2. 설치
 
@@ -116,38 +116,45 @@ python main.py probe 0013         # 해당 극장의 상영 회차와 원본 필
 
 ### 4. 설정 (`config.json`)
 
-`config.example.json` 을 `config.json` 으로 복사한 뒤 수정합니다. (처음 실행하면 자동으로 복사됩니다.)
+처음 실행하면 `config.example.json` 이 `config.json` 으로 복사됩니다. 기본값은 **영등포타임스퀘어(0059) IMAX / SCREENX** 입니다.
+다른 극장이나 영화를 보고 싶으면 `targets` 를 고치세요.
 
 ```jsonc
 {
   "targets": [
-    { "name": "용산아이파크몰 IMAX", "theater_code": "0013", "screen_keywords": ["IMAX"] },
-    { "name": "왕십리 전체",        "theater_code": "0074", "screen_keywords": [] },
-    { "name": "강남 아바타",        "theater_code": "0056", "movie_keywords": ["아바타"] }
+    { "name": "영등포타임스퀘어 IMAX",    "theater_code": "0059", "screen_keywords": ["IMAX"] },
+    { "name": "영등포타임스퀘어 SCREENX", "theater_code": "0059", "screen_keywords": ["SCREENX"] },
+    { "name": "영등포 전체",             "theater_code": "0059", "screen_keywords": [] },        // 모든 상영관
+    { "name": "강남 아바타",             "theater_code": "0056", "movie_keywords": ["아바타"] }  // 특정 영화
   ],
   "check_interval_sec": 300,        // 조회 주기 (초). 너무 짧게 잡으면 차단될 수 있음
   "lookahead_days": 14,             // 오늘부터 며칠치 시간표를 볼지
   "notify_on_first_run": false,     // true 면 첫 실행 때 현재 예매 가능 회차도 알림
-  "discord_webhook_url": "https://discord.com/api/webhooks/....",
+  "ntfy_topic": "",                 // 비워 두면 첫 실행 때 자동 생성
+  "discord_webhook_url": "",        // Discord 로도 받고 싶을 때
   "status_page": { "enabled": true, "host": "127.0.0.1", "port": 5000 }
 }
 ```
 
 | 항목 | 설명 |
 |---|---|
-| `theater_code` | CGV 극장 코드 (`theaters` 명령으로 확인) |
+| `theater_code` | CGV 극장 코드 (`theaters` 명령으로 확인). 지역 코드는 필요 없습니다. |
 | `screen_keywords` | 상영관/유형 키워드. 하나라도 포함된 회차만 감시. 비우면 모든 상영관 (`IMAX`, `4DX`, `SCREENX`, `골드클래스` …) |
 | `movie_keywords` | 영화 제목 키워드. 비우면 모든 영화 |
 | `exclude_keywords` | 포함되면 무시할 키워드 |
+| `ntfy_topic` | 폰 알림용 ntfy 토픽. 비워 두면 자동 생성. 아는 사람은 누구나 구독할 수 있으니 공개하지 마세요 |
 
-웹훅 URL 은 설정 파일 대신 환경 변수 `DISCORD_WEBHOOK_URL` 로 줄 수도 있습니다.
+웹훅 URL 등은 설정 파일 대신 환경 변수 `DISCORD_WEBHOOK_URL`, `NTFY_TOPIC` 으로 줄 수도 있습니다.
 
 ### 5. 실행
 
 ```bash
-python main.py test-notify        # 알림 채널 테스트
+python main.py test-notify        # 알림 채널 테스트 (ntfy 토픽이 없으면 여기서 자동 생성되고 구독 방법이 출력됨)
+python main.py phone              # 폰 구독용 토픽 이름 / 주소 다시 보기
 python main.py run                # 감시 시작 (Ctrl+C 로 종료)
 ```
+
+**폰에서 받기**: `test-notify` 가 출력한 토픽 이름을 ntfy 앱의 구독(+)에 입력하면 끝입니다. 테스트 메시지가 폰에 뜨는지 확인하세요.
 
 - 실행 중 http://127.0.0.1:5000 에서 상태·최근 알림·로그를 볼 수 있습니다.
 - 처음 실행하면 현재 시간표를 기준으로 저장만 하고, 이후 **새로 생긴 회차(= 예매 오픈)** 만 알립니다.

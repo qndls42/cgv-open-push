@@ -220,10 +220,10 @@ class Monitor:
             if previous is None:
                 log.info("%s: 첫 조회, 회차 %d건을 기준으로 저장", target.name, len(current))
                 if self.notify_on_first_run and current:
-                    self._notify(target, "현재 예매 가능 회차", sorted(current_lines.values()))
+                    self._notify(target, "현재 예매 가능 회차", [current_lines[k] for k in sorted(current_lines)])
             else:
-                added = sorted(current_lines[k] for k in current_lines.keys() - previous.keys())
-                removed = sorted(previous[k] for k in previous.keys() - current_lines.keys())
+                added = [current_lines[k] for k in sorted(current_lines.keys() - previous.keys())]
+                removed = [previous[k] for k in sorted(previous.keys() - current_lines.keys())]
                 if added:
                     log.info("%s: 새 회차 %d건", target.name, len(added))
                     self._notify(target, "예매 오픈 알림", added)

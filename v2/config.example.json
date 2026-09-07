@@ -1,24 +1,17 @@
 {
-  "_설명": "config.json 으로 복사한 뒤 수정하세요. 극장 코드는 `python main.py theaters 검색어` 로 찾을 수 있습니다.",
+  "_설명": "처음 실행하면 이 파일이 config.json 으로 복사됩니다. 극장 코드는 `python main.py theaters 검색어` 로 찾을 수 있습니다.",
 
   "targets": [
     {
-      "name": "용산아이파크몰 IMAX",
-      "theater_code": "0013",
+      "name": "영등포타임스퀘어 IMAX",
+      "theater_code": "0059",
       "screen_keywords": ["IMAX"],
       "movie_keywords": [],
       "exclude_keywords": []
     },
     {
-      "name": "용산아이파크몰 4DX",
-      "theater_code": "0013",
-      "screen_keywords": ["4DX"],
-      "movie_keywords": [],
-      "exclude_keywords": []
-    },
-    {
-      "name": "용산아이파크몰 SCREENX",
-      "theater_code": "0013",
+      "name": "영등포타임스퀘어 SCREENX",
+      "theater_code": "0059",
       "screen_keywords": ["SCREENX"],
       "movie_keywords": [],
       "exclude_keywords": []
@@ -27,10 +20,11 @@
 
   "_targets_설명": [
     "name             : 알림에 표시될 이름",
-    "theater_code     : CGV 극장 코드 (예: 0013 용산아이파크몰, 0056 강남, 0074 왕십리, 0059 영등포, 0112 여의도)",
-    "screen_keywords  : 상영관/유형 키워드. 하나라도 포함된 회차만 감시. 비우면 모든 상영관 (예: IMAX, 4DX, SCREENX, 골드클래스, 씨네드쉐프)",
+    "theater_code     : CGV 극장 코드 (예: 0059 영등포타임스퀘어, 0013 용산아이파크몰, 0056 강남, 0074 왕십리, 0112 여의도)",
+    "screen_keywords  : 상영관/유형 키워드. 하나라도 포함된 회차만 감시. 비우면 모든 상영관 (예: IMAX, 4DX, SCREENX, 골드클래스)",
     "movie_keywords   : 영화 제목 키워드. 비우면 모든 영화 (예: [\"아바타\"])",
-    "exclude_keywords : 이 키워드가 포함된 회차는 무시"
+    "exclude_keywords : 이 키워드가 포함된 회차는 무시",
+    "극장 전체를 감시하려면 screen_keywords 를 [] 로 비운 target 하나만 두면 됩니다."
   ],
 
   "check_interval_sec": 300,
@@ -40,6 +34,12 @@
   "notify_on_first_run": false,
   "notify_removed": false,
 
+  "_알림_설명": [
+    "ntfy_topic 을 비워 두면 첫 실행 때 자동으로 만들어 저장합니다. 폰에 ntfy 앱을 깔고 그 토픽을 구독하면 됩니다.",
+    "Discord 로 받고 싶으면 discord_webhook_url 에 웹훅 URL 을 넣으세요. 여러 채널을 동시에 써도 됩니다."
+  ],
+  "ntfy_topic": "",
+  "ntfy_server": "https://ntfy.sh",
   "discord_webhook_url": "",
   "telegram_bot_token": "",
   "telegram_chat_id": "",
